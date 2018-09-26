@@ -1,0 +1,1 @@
+The directory contains a sample image, the result of phantom NEMA IEC  reconstruction.
