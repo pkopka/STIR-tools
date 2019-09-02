@@ -97,8 +97,8 @@ void copyt3() {
    Float_t         sourcePosZ2;
    Int_t           submoduleID1;
    Int_t           submoduleID2;
-   Double_t         time1;
-   Double_t         time2;
+   Double_t        time1;
+   Double_t        time2;
    
   
 // Set branch addresses - TTree Coincicences
@@ -165,11 +165,11 @@ void copyt3() {
     globalPosX1 = std::stof(tokens.at(0))*10;
     globalPosY1 = std::stof(tokens.at(1))*10;
     globalPosZ1 = std::stof(tokens.at(2))*10;
-    time1 = std::stof(tokens.at(3));
+    time1 = std::stod(tokens.at(3))/1e12;
     globalPosX2 = std::stof(tokens.at(4))*10;
     globalPosY2 = std::stof(tokens.at(5))*10;
     globalPosZ2 = std::stof(tokens.at(6))*10;
-    time2 = std::stof(tokens.at(7));
+    time2 = std::stod(tokens.at(7))/1e12;
     rsectorID1 = std::stof(tokens.at(8));
     rsectorID2 = std::stof(tokens.at(9));
     energy1 = std::stof(tokens.at(10))*0.001;
@@ -190,7 +190,7 @@ void copyt3() {
     number_of_parts = atoi(getenv("NUMBER_OF_PARTS"));
     crystalID1 = crystal_id(globalPosZ1,scanner_lenght,number_of_parts);
     crystalID2 = crystal_id(globalPosZ2,scanner_lenght,number_of_parts);
-    // Int_t new_rsector;
+    Int_t new_rsector;
     // new_rsector = rsector_id(globalPosX1,globalPosY1,INNER_RADIUS,WIDTH_DETECTOR,NUMER_OF_DETECOR);
     
     // if (rsectorID1 !=  new_rsector){
@@ -200,7 +200,6 @@ void copyt3() {
     //     // cout<<globalPosX1<<"    "<<globalPosY1<<endl;
     //     cout<<"root "<<rsectorID1<<" new :"<<new_rsector<<endl;
     // };
-    
     newtree->Fill();
 
 
