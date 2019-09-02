@@ -8,7 +8,12 @@ Average depth of interaction (cm)        := {{average_depth_of_interaction}}
 Distance between rings (cm)              := {{dist}}
 Default bin size (cm)                    := {{default_bin_size}}
 Maximum number of non-arc-corrected bins := {{non_arc_corrected_bins}}
-
+{% if tof %}
+Number of TOF time bins := {{number_of_tof_bins}}
+Size of timing bin (ps) := {{size_of_time_bin}}
+Timing resolution (ps) := {{time_resolution}}
+%TOF mashing factor:= {{tof_mashing_factor}}
+{% endif %}
 
 
 GATE scanner type := GATE_Cylindrical_PET

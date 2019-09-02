@@ -5,7 +5,7 @@ output filename prefix := ${OUT_PROJDATA_FILE}
 
   ; parameters that determine the sizes etc of the output
 
-       template_projdata := nema_quality.hs
+       template_projdata := scanner_template.hs
     ; the next can be used to use a smaller number of segments than given 
     ; in the template
     maximum absolute segment number to process := -1
