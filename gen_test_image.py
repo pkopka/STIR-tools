@@ -24,6 +24,9 @@ parser.add_option("-f", "--scaling_factor_z",
                   action="store", dest="scaling_factor_z", type="float", default=5.0,
                   help="Scaling Factor for X Y  dimension in mm/pixel")
 
+BV=0.3
+CRC=0.8
+
 
 def draw_cylinder_mm(array, x0, y0, z0, radius, height, scaling_factor_xy, scaling_factor_z, size_xy, size_z, mu=0,
                      half=False):
@@ -64,7 +67,15 @@ def draw_cylinder_mm(array, x0, y0, z0, radius, height, scaling_factor_xy, scali
     else:
         index = x ** 2 + y ** 2 <= radius ** 2
     for x in range(z0 - h, z0 + h + 1):
-        array[x, y0 - radius:y0 + radius + 1, x0 - radius:x0 + radius + 1][index] = mu
+        size = ((y0 + radius + 1)-(y0 - radius), (x0 + radius + 1)-(x0 - radius))
+        if mu >0:
+            for i in range(size[0]):
+                for j in range(size[1]):
+                    if index[i,j]:
+                        random_val = np.random.normal(mu,mu*BV)
+                        array[x, y0 - radius:y0 + radius + 1, x0 - radius:x0 + radius + 1][i,j] = random_val
+        else:
+            array[x, y0 - radius:y0 + radius + 1, x0 - radius:x0 + radius + 1][index] = mu
 
 
 def draw_sphere_mm(array, x0, y0, z0, radius, scaling_factor_xy, scaling_factor_z, size_xy, size_z, mu=0):
@@ -89,7 +100,36 @@ def draw_sphere_mm(array, x0, y0, z0, radius, scaling_factor_xy, scaling_factor_
 
         y, x = np.ogrid[-radius_xy: radius_xy + 1, -radius_xy: radius_xy + 1]
         index = x ** 2 + y ** 2 <= radius_xy ** 2
-        array[z, y0 - radius_xy:y0 + radius_xy + 1, x0 - radius_xy:x0 + radius_xy + 1][index] = mu
+        size = ((y0 + radius_xy + 1)-(y0 - radius_xy), (x0 + radius_xy + 1) - (x0 - radius_xy))
+        if mu >0:
+            for i in range(size[0]):
+                for j in range(size[1]):
+                    if index[i,j]:
+                        random_val = np.random.normal(mu,mu*BV)
+                        array[z, y0 - radius_xy:y0 + radius_xy + 1, x0 - radius_xy:x0 + radius_xy + 1][i,j] = random_val
+        else:
+            array[z, y0 - radius_xy:y0 + radius_xy + 1, x0 - radius_xy:x0 + radius_xy + 1][index] = mu
+
+def clean_ring(array, radius, scaling_factor_xy, scaling_factor_z, size_xy, size_z):
+    def cm2pix(dm, dx=scaling_factor_xy, size=size_xy):
+        return int(size / 2 + (dm * (1 / dx)))
+    x0=0
+    y0=0
+    z0=0
+    x0 = cm2pix(x0)
+    y0 = cm2pix(-y0)
+    z0 = cm2pix(z0, scaling_factor_z, size_z)
+
+    radius_z = 50
+    print("CLEAN")
+    for z in range(z0 - radius_z, z0 + radius_z + 1):
+        print(z)
+        radius_xy = int(radius * (1 / scaling_factor_xy))
+        y, x = np.ogrid[-size_xy/2: size_xy/2, -size_xy/2: size_xy/2]
+        index = x ** 2 + y ** 2 > radius_xy ** 2
+        
+        array[z, :, :][index] = 0.0
+    print(index)
 
 
 def get_sphere_mm(array, x0, y0, z0, radius, scaling_factor_xy, scaling_factor_z, size_xy, size_z, mu=0):
@@ -144,8 +184,14 @@ def draw_box_mm(array, x0, y0, z0, dx, dy, dz, scaling_factor_xy, scaling_factor
 
 
 def draw_box(array, x0, y0, z0, dx, dy, dz, mu):
-    array[int((z0 - dz / 2) + 1):int((z0 + dz / 2) + 1), int(y0 - dy / 2):int(y0 + dy / 2 + 1),
-    int(x0 - dx / 2):int(x0 + dx / 2 + 1)] = mu
+    size = (int((z0 + dz / 2) + 1)-int((z0 - dz / 2) + 1), int(y0 + dy / 2 + 1)-int(y0 - dy / 2),
+    int(x0 + dx / 2 + 1)-int(x0 - dx / 2))
+    if mu>0:
+        array[int((z0 - dz / 2) + 1):int((z0 + dz / 2) + 1), int(y0 - dy / 2):int(y0 + dy / 2 + 1),
+        int(x0 - dx / 2):int(x0 + dx / 2 + 1)] = np.random.normal(mu,mu*BV,size=size)
+    else:
+        array[int((z0 - dz / 2) + 1):int((z0 + dz / 2) + 1), int(y0 - dy / 2):int(y0 + dy / 2 + 1),
+        int(x0 - dx / 2):int(x0 + dx / 2 + 1)] = mu        
 
 
 def get_translation(_dict, volume):
@@ -153,7 +199,7 @@ def get_translation(_dict, volume):
     return -10 * _dict[volume]['setTranslation'][0], 10 * _dict[volume]['setTranslation'][1], 10 * \
            _dict[volume]['setTranslation'][2]
 
-def draw_geometry(array, geometry, scaling_factor_xy, scaling_factor_z):
+def draw_geometry(array, geometry, scaling_factor_xy, scaling_factor_z, test=False):
     """
 
     :param array: image numpy array
@@ -168,13 +214,13 @@ def draw_geometry(array, geometry, scaling_factor_xy, scaling_factor_z):
     def set_material_val(material):
         """setattenuation coefficient in cm-1"""
         if material == 'Water':
-            return 0.0096
+            return 0.096
         elif material == 'Air':
-            return 0
+            return 0.0
         elif material == 'Plastic':
-            return 0.0097
+            return 0.097
         elif material == 'Abstract':
-            return 0
+            return 0.0
         else:
             print(material)
             raise Exception('Not ivalid material')
@@ -184,6 +230,8 @@ def draw_geometry(array, geometry, scaling_factor_xy, scaling_factor_z):
     for volume in order_keys:
         mat_val = set_material_val(geometry[volume]['material'])
         x, y, z = get_translation(geometry, volume)
+        if mat_val>0 and test:
+            mat_val = 1.0
 
         if geometry[volume]['type'] == 'box':
             dx = 10 * geometry[volume]['setXLength']
@@ -192,6 +240,8 @@ def draw_geometry(array, geometry, scaling_factor_xy, scaling_factor_z):
             # print(volume, (x,y,z), dx, dy, dz  ,geometry[volume]['type'])
             draw_box_mm(array, x, y, z, dx, dy, dz, scaling_factor_xy, scaling_factor_z, size, size_z, mat_val)
         elif geometry[volume]['type'] == 'sphare':
+            if volume in ['sphere10in','sphere13in','sphere17in','sphere22in'] and test:
+                mat_val = 4.0*(CRC*3+1)/4.0
 
             r = 10 * geometry[volume]['setRmax']
             # print(volume, (x,y,z), r, geometry[volume]['type'])
@@ -209,6 +259,9 @@ def draw_geometry(array, geometry, scaling_factor_xy, scaling_factor_z):
         else:
             # print(geometry[volume]['type'])
             raise Exception("Not invalid shape type")
+    minimum = min(array.flatten())
+    array[array == 0.0] = minimum
+
 
 
 if __name__ == "__main__":
@@ -223,13 +276,13 @@ if __name__ == "__main__":
     scaling_factor_z = options.scaling_factor_z
     size_xy = options.size_xy
     size_z = options.size_z
-    array = np.zeros((size_z, size_xy, size_xy))
+    array = np.zeros((size_z, size_xy, size_xy),dtype=float)
 
     print("Create phantom...")
-    draw_geometry(array, JPET.geometry, scaling_factor_xy, scaling_factor_z)
+    draw_geometry(array, JPET.geometry, scaling_factor_xy, scaling_factor_z, test=True)
 
     filename = options.file
     print("Save image to file %s ..." % filename)
-    array = array[:,::-1,::-1] #verfilp
+    # array = array[:,::-1,::-1] #verfilp for QETRI
     array.astype(np.float32).tofile(filename)
     print("Image save successfully")
