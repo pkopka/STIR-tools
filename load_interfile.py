@@ -3,7 +3,7 @@ import pylab
 import re
 from os import path
 from math import asin, tan, isnan
-from image_tools import draw_sphere_mm, get_translation, clean_ring
+from image_tools import draw_sphere_mm, get_translation
 from gate_macro_parser.phantom_parser import JPET
 
 from optparse import OptionParser

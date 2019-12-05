@@ -3,6 +3,13 @@ from optparse import OptionParser
 
 import numpy as np
 
+# Script generate test image BV and CRC set below.
+
+BV=0.3
+CRC=0.8
+
+
+
 parser = OptionParser()
 
 parser.add_option("-o", "--out",
@@ -23,9 +30,6 @@ parser.add_option("-s", "--scaling_factor_xy",
 parser.add_option("-f", "--scaling_factor_z",
                   action="store", dest="scaling_factor_z", type="float", default=5.0,
                   help="Scaling Factor for X Y  dimension in mm/pixel")
-
-BV=0.3
-CRC=0.8
 
 
 def draw_cylinder_mm(array, x0, y0, z0, radius, height, scaling_factor_xy, scaling_factor_z, size_xy, size_z, mu=0,
