@@ -187,7 +187,7 @@ def measure(interfile_header, volume_name):
         back_ground['std'].append(s)
 
     back_ground_mean = np.mean(back_ground['mean'])
-    back_ground_std = np.mean(back_ground['std'])
+    back_ground_std = np.std(back_ground['mean'])
 
     # GET ROI
     x, y, z = get_translation(JPET.geometry, volume_name)
