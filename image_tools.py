@@ -6,7 +6,7 @@ import numpy as np
 parser = OptionParser()
 
 parser.add_option("-o", "--out",
-                  action="store", dest="file", metavar="PATH", type="string", default='output/att_map_test.v',
+                  action="store", dest="file", metavar="PATH", type="string", default='assets/att_map_test.v',
                   help="Path out file")
 parser.add_option("-x", "--size_xy",
                   action="store", dest="size_xy", type="int", default=512,
@@ -24,6 +24,9 @@ parser.add_option("-f", "--scaling_factor_z",
                   action="store", dest="scaling_factor_z", type="float", default=5.0,
                   help="Scaling Factor for X Y  dimension in mm/pixel")
 
+parser.add_option("-q", "--qetir",
+                  action="store_true", dest="qetir", default=False,
+                  help="flip image, and use mm-1 units")
 
 def draw_cylinder_mm(array, x0, y0, z0, radius, height, scaling_factor_xy, scaling_factor_z, size_xy, size_z, mu=0,
                      half=False):
@@ -230,6 +233,7 @@ if __name__ == "__main__":
 
     filename = options.file
     print("Save image to file %s ..." % filename)
-    array = array[:,::-1,::-1] #verfilp
+    if options.qetir:
+        array = array[:,::-1,::-1] #verfilp
     array.astype(np.float32).tofile(filename)
     print("Image save successfully")
