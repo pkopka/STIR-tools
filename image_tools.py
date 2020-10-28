@@ -171,11 +171,11 @@ def draw_geometry(array, geometry, scaling_factor_xy, scaling_factor_z):
     def set_material_val(material):
         """setattenuation coefficient in cm-1"""
         if material == 'Water':
-            return 0.0096
+            return 0.096
         elif material == 'Air':
             return 0
         elif material == 'Plastic':
-            return 0.0097
+            return 0.097
         elif material == 'Abstract':
             return 0
         else:
@@ -197,8 +197,12 @@ def draw_geometry(array, geometry, scaling_factor_xy, scaling_factor_z):
         elif geometry[volume]['type'] == 'sphare':
 
             r = 10 * geometry[volume]['setRmax']
-            # print(volume, (x,y,z), r, geometry[volume]['type'])
             draw_sphere_mm(array, x, y, z, r, scaling_factor_xy, scaling_factor_z, size, size_z, mat_val)
+            # if volume in ['sphere10in', 'sphere13in', 'sphere17in', 'sphere22in']:
+            #     print(volume, (x,y,z), r, geometry[volume]['type'])
+            #     draw_sphere_mm(array, x, y, z, r, scaling_factor_xy, scaling_factor_z, size, size_z, 4.0)
+            # else:
+            #     draw_sphere_mm(array, x, y, z, r, scaling_factor_xy, scaling_factor_z, size, size_z, mat_val)
         elif geometry[volume]['type'] == 'cylinder':
             r = 10 * geometry[volume]['setRmax']
             h = 10 * geometry[volume]['setHeight']

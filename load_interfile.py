@@ -36,10 +36,23 @@ def interfile_parser(file_name):
     """
     f = open(file_name, 'r')
     param = {}
-    for line in f.readlines():
-        matchObj = re.match(r'(.*) := (.*)', line, re.M | re.I)
-        if matchObj:
-            param[matchObj.group(1)] = matchObj.group(2)
+    try:
+        if file_name.split(".")[-1]== 'raw':
+            #parse qetir raw files without header
+            param["type"] = np.float32
+            param['flip'] = False
+            param['scaling_factor_xy'] = 2.5
+            param['scaling_factor_z'] = 2.5
+            param['size'] = (161, 161, 161)
+            param['path_to_data_file'] = file_name
+            return param
+        else:
+            for line in f.readlines():
+                matchObj = re.match(r'(.*) := (.*)', line, re.M | re.I)
+                if matchObj:
+                    param[matchObj.group(1)] = matchObj.group(2)
+    except:
+        raise Exception("Unsupurted format")
     try:
         param['size'] = (int(param['!matrix size [3]']), int(param['!matrix size [2]']), int(param['!matrix size [1]']))
     except KeyError:
@@ -49,7 +62,7 @@ def interfile_parser(file_name):
     except:
         param['flip'] = False # add fil for QETRI
 
-    if param['!number format'] == 'float':
+    if param['!number format'] == 'float' or param['!number format'] == 'short float':
         if param['!number of bytes per pixel'] == '4':
             param["type"] = np.float32
         else:
@@ -61,7 +74,10 @@ def interfile_parser(file_name):
         param['scaling_factor_z'] = float(param['scaling factor (mm/pixel) [3]'])
     except:
         raise Exception("Bad parsing scaling_factor")
-    param['path_to_data_file'] = path.join(path.dirname(file_name), param['name of data file'])
+    if param.get('name of data file'):
+        param['path_to_data_file'] = path.join(path.dirname(file_name), param['name of data file'])
+    elif param.get('!name of data file'):
+        param['path_to_data_file'] = path.join(path.dirname(file_name), param['!name of data file'])
     return param
 
 
@@ -76,7 +92,7 @@ def interfile2array(param):
     v_list = np.fromfile(f, dtype=param['type'])
     f.close()
     resh_arr = np.asarray(v_list).reshape(param['size'])
-    if param['flip']:
+    if param['flip'] or True:
         resh_arr = resh_arr[:,::-1,::-1] #verfilp for QETIR
     return resh_arr
 
@@ -91,7 +107,6 @@ def get_circle_measure(array, x0, y0, z0, radius, scaling_factor_xy, scaling_fac
     x0 = cm2pix(x0)
     y0 = cm2pix(-y0)
     z0 = cm2pix(z0, scaling_factor_z, size_z)
-
     radius_z = int(radius * (1.0 / scaling_factor_z))
     out_list = []
     radius_xy = int(radius * (1 / scaling_factor_xy))
@@ -115,7 +130,6 @@ def get_sphere_maximum(array, x0, y0, z0, radius, scaling_factor_xy, scaling_fac
     x0 = cm2pix(x0)
     y0 = cm2pix(-y0)
     z0 = cm2pix(z0, scaling_factor_z, size_z)
-
     radius_z = int(radius * (1.0 / scaling_factor_z))
     out_list = []
     z= z0
@@ -194,7 +208,7 @@ def measure(interfile_header, volume_name, full=False):
             m, s, n = get_circle_measure(image, background_con[i][0], background_con[i][1], z+delta_z, r, scaling_factor_xy, scaling_factor_z,
                                     size_xy, size_z)
             # draw_sphere_mm(image, background_con[i][0], background_con[i][1], z+delta_z, r, scaling_factor_xy, scaling_factor_z,
-            #                         size_xy, size_z,0)
+                                    # size_xy, size_z,0)
             back_ground['mean'].append(m)
             back_ground['std'].append(s)
 
@@ -205,7 +219,6 @@ def measure(interfile_header, volume_name, full=False):
     # GET ROI
 
     roi_mean, roi_std, n = get_circle_measure(image, x, y, z, r, scaling_factor_xy, scaling_factor_z, size_xy, size_z)
-
     # draw_sphere_mm(image, x, y, z, r, scaling_factor_xy, scaling_factor_z, size_xy, size_z,0)
 
 
@@ -227,8 +240,7 @@ def measure(interfile_header, volume_name, full=False):
         bv_error = Delta_BV
         crc = ((roi_mean / back_ground_mean - 1) / 3)
         crc_error = Delta_CRC
-        out_str = '{}\n{}\n{}\n{}'.format(bv, bv_error, crc,  crc_error)
-        out_str = out_str.replace('.',',')
+        out_str = '{}\t{}\t{}\t{}'.format(bv, bv_error, crc,  crc_error)
         print(out_str)
     else:
         bv = "%.3f" % (back_ground_std / back_ground_mean)
