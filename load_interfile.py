@@ -1,6 +1,7 @@
 import numpy as np
 import operator
 from scipy.special import gamma
+from scipy import ndimage
 import pylab
 import re
 from os import path
@@ -27,7 +28,13 @@ parser.add_option("-f", "--full",
                   action="store_true", dest="full", default=False,
                   help="print all values")
 
+parser.add_option("-s", "--sigma_gaussian_filter", default=False,
+                  action="store", dest="sigma", type="float",
+                  help="sigma gaussian filter")
 
+parser.add_option("-m", "--size_median_filter", default=False,
+                  action="store", dest="median_size", type="int",
+                  help="size median filte")
 def interfile_parser(file_name):
     """
     Parse interfile header to dict
@@ -43,7 +50,8 @@ def interfile_parser(file_name):
             param['flip'] = False
             param['scaling_factor_xy'] = 2.5
             param['scaling_factor_z'] = 2.5
-            param['size'] = (161, 161, 161)
+            match = re.search("_([1-9]+)x([1-9]+)x([1-9]+)\.raw", file_name)
+            param['size'] = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
             param['path_to_data_file'] = file_name
             return param
         else:
@@ -176,13 +184,48 @@ def show_xy(_array, r=437.3, title=""):
     pylab.savefig(fig_name)
     # pylab.show()
 
+def MSE(A,B):
+    return np.square(np.subtract(A, B)).mean()
+def norm_image(image):
+    phantom_maximum = max(image.flatten())
+    image=(image-min(image.flatten()))
+    image = (image/phantom_maximum)
+    return image
 
-def measure(interfile_header, volume_name, full=False):
+def image_MSE(image_A, image_B):
+    image_A_norm = norm_image(image_A)
+    image_B_norm = norm_image(image_B)
+    return MSE(image_A_norm, image_B_norm)
+
+def raw2array(file_name):
+    """
+    conveft interfile to numpy array
+    :param param: dict contens interfile poarametrs
+    :return:
+    """
+
+    f = open(file_name, 'r')
+    v_list = np.fromfile(f, dtype=np.float32)
+    f.close()
+    match = re.search("_([1-9]+)x([1-9]+)x([1-9]+)\.raw", file_name)
+    size = (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+    resh_arr = np.asarray(v_list).reshape(size)
+    return resh_arr
+
+
+def measure(interfile_header, volume_name, full=False, filter_size=None):
     """
     Calculate image quality CRC BV
     """
     parameters = interfile_parser(interfile_header)
     image = interfile2array(parameters) # read intefile
+    if filter_size:
+        if type(filter_size) == float:
+            print("Gaussian filter :%f " % filter_size)
+            image = ndimage.gaussian_filter(image, sigma=filter_size)           
+        else:
+            print("Median filter :%d " % filter_size )
+            image = ndimage.median_filter(image, filter_size)
 
     r = JPET.geometry[volume_name]['setRmax'] * 10 #  JPET has infarmation about NEMA Phantom from GATE
 
@@ -236,11 +279,16 @@ def measure(interfile_header, volume_name, full=False):
     Delta_BV = np.sqrt(((back_ground_std*Delta_bg_mean)/(back_ground_mean)**2)**2 + (Delta_SD/back_ground_mean)**2)
 
     if full: # print std BV and std ROI
+        image_ref= raw2array("reference_161x161x161.raw")
+        image_ref=norm_image(image_ref)
+        image_n= norm_image(image)
+        mse = image_MSE(image_n, image_ref)
+
         bv = (back_ground_std / back_ground_mean)
         bv_error = Delta_BV
         crc = ((roi_mean / back_ground_mean - 1) / 3)
         crc_error = Delta_CRC
-        out_str = '{}\t{}\t{}\t{}'.format(bv, bv_error, crc,  crc_error)
+        out_str = '{}\t{}\t{}\t{}\t{}\t{}'.format(bv, bv_error, crc,  crc_error, mse, volume_name)
         print(out_str)
     else:
         bv = "%.3f" % (back_ground_std / back_ground_mean)
@@ -259,4 +307,7 @@ if __name__ == "__main__":
     file_name = options.file
     volume_name = options.volume_name
     full = options.full #print not rounded values
-    measure(file_name, volume_name, full=full)
+    sigma = options.sigma
+    median_size = options.median_size
+    filter_size = sigma if sigma else median_size
+    measure(file_name, volume_name, full=full, filter_size=filter_size)
